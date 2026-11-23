@@ -10,7 +10,7 @@ PROJECT_DIR = Path(__file__).resolve().parent
 MODEL_PATH = PROJECT_DIR / "model.keras"
 IMAGE_SIZE = (300, 250)
 INPUT_SHAPE = (250, 300, 3)
-CLASS_NAMES = ("COVID", "Normal", "Pneumonia")
+CLASS_NAMES = ("COVID-19", "Normal", "Pneumonia")
 
 st.set_page_config(
     page_title="MedVision AI | X-Ray Analysis",
@@ -137,9 +137,10 @@ with st.sidebar:
     st.title("🫁 MedVision AI")
     st.caption("INTELLIGENT MEDICAL IMAGING")
     st.divider()
-    st.subheader("Navigation")
-    st.markdown("🔍 X-Ray Classification")
-    st.markdown("📊 Model Information")
+    page = st.radio(
+        "Navigation",
+        ("🔍 X-Ray Classification", "📊 Model Information"),
+    )
     st.divider()
     st.subheader("Model Details")
     st.markdown(
@@ -152,6 +153,18 @@ with st.sidebar:
     )
     st.divider()
     st.caption("Educational project only")
+
+if page == "📊 Model Information":
+    st.title("📊 Model Information")
+    st.info("تطبيق تعليمي لتصنيف أشعة الصدر — لا يُستخدم للتشخيص الطبي.")
+    st.write(f"**الفئات:** {', '.join(CLASS_NAMES)}")
+    st.write(f"**أبعاد الإدخال:** `{INPUT_SHAPE[0]} × {INPUT_SHAPE[1]} × {INPUT_SHAPE[2]}`")
+    st.write(f"**ملف النموذج:** `{MODEL_PATH.name}`")
+    st.warning(
+        "النموذج المحفوظ لا يحتوي أسماء الفئات؛ ترتيب الأسماء هنا هو "
+        "الترتيب المهيأ في التطبيق."
+    )
+    st.stop()
 
 st.markdown(
     '<div class="main-title">Chest X-Ray Analysis</div>',
@@ -182,7 +195,7 @@ with left_col:
     )
     st.warning(
         "The saved model does not include class names. Results use the "
-        "configured order: COVID, Normal, Pneumonia."
+        "configured order: COVID-19, Normal, Pneumonia."
     )
     uploaded_file = st.file_uploader(
         "Choose a chest X-ray image",
