@@ -119,7 +119,7 @@ hr {
 
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model("model.keras")
+    return tf.keras.models.load_model("model.keras", compile=False)
 
 
 # ==========================================
