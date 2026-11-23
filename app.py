@@ -115,44 +115,10 @@ hr {
 
 # ==========================================
 # LOAD MODEL
-# ==========================================
-import zipfile
-import tempfile
-import os
-import tf_keras
-
+# ==============================
 @st.cache_resource
 def load_model():
-    model_path = "model.keras"
-    try:
-        return tf_keras.models.load_model(model_path, compile=False)
-    except Exception:
-        pass
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with zipfile.ZipFile(model_path, "r") as zf:
-            zf.extractall(tmpdir)
-        weights_file = os.path.join(tmpdir, "model.weights.h5")
-        if os.path.exists(weights_file):
-            model = tf_keras.Sequential([
-                tf_keras.layers.Input(shape=(250, 300, 3)),
-                tf_keras.layers.Conv2D(32, (3, 3), activation="relu"),
-                tf_keras.layers.MaxPooling2D((2, 2)),
-                tf_keras.layers.Conv2D(64, (3, 3), activation="relu"),
-                tf_keras.layers.MaxPooling2D((2, 2)),
-                tf_keras.layers.Conv2D(128, (3, 3), activation="relu"),
-                tf_keras.layers.MaxPooling2D((2, 2)),
-                tf_keras.layers.Conv2D(128, (3, 3), activation="relu"),
-                tf_keras.layers.MaxPooling2D((2, 2)),
-                tf_keras.layers.Flatten(),
-                tf_keras.layers.Dropout(0.5),
-                tf_keras.layers.Dense(512, activation="relu"),
-                tf_keras.layers.Dense(3, activation="softmax"),
-            ])
-            model.load_weights(weights_file)
-            return model
-    raise RuntimeError("Could not load model or weights from model.keras")
-
+    return tf.keras.models.load_model("model.keras", compile=False)
 
 # ==========================================
 # SIDEBAR
