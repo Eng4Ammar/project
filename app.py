@@ -7,100 +7,87 @@ import tensorflow as tf
 from PIL import Image, UnidentifiedImageError
 
 PROJECT_DIR = Path(__file__).resolve().parent
-MODEL_PATH = PROJECT_DIR / "model.keras"
-IMAGE_SIZE = (300, 250)
-INPUT_SHAPE = (250, 300, 3)
-CLASS_NAMES = ("COVID-19", "Normal", "Pneumonia")
+MODEL_PATH = PROJECT_DIR / "dog_cat_model.keras"
+IMAGE_SIZE = (256, 256)
 
 st.set_page_config(
-    page_title="MedVision AI | X-Ray Analysis",
-    page_icon="🫁",
+    page_title="AI Vision | Dog vs Cat",
+    page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded",
 )
 
 st.markdown(
     """
     <style>
     .stApp {
-        background-color: #0E1525;
-        color: #F1F5F9;
+        background-color: #f7f7f8;
+        color: #202123;
     }
-
-    header {
-        background-color: transparent !important;
+    section[data-testid="stSidebar"] {
+        background-color: #202123;
+        border-right: 1px solid #343541;
     }
-
-    [data-testid="stSidebar"] {
-        background-color: #151F33;
-        border-right: 1px solid #26344D;
+    section[data-testid="stSidebar"] * {
+        color: #ececf1 !important;
     }
-
+    .block-container {
+        max-width: 900px;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
     .main-title {
-        font-size: 36px;
-        font-weight: 800;
-        color: #F8FAFC;
+        font-size: 38px;
+        font-weight: 700;
+        text-align: center;
+        color: #202123;
         margin-bottom: 5px;
     }
-
     .subtitle {
-        color: #94A3B8;
-        font-size: 15px;
-        margin-bottom: 25px;
-    }
-
-    .section-title {
-        font-size: 21px;
-        font-weight: 700;
-        color: #F1F5F9;
-        margin-bottom: 15px;
-    }
-
-    .info-card {
-        background: #18243A;
-        border: 1px solid #2B3A55;
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 15px;
-    }
-
-    .result-card {
-        background: linear-gradient(135deg, #173A48, #18243A);
-        border: 1px solid #267B83;
-        border-radius: 15px;
-        padding: 25px;
         text-align: center;
+        font-size: 16px;
+        color: #777;
+        margin-bottom: 35px;
     }
-
-    .result-label {
-        color: #94A3B8;
-        font-size: 14px;
+    .custom-card {
+        background: white;
+        padding: 25px;
+        border-radius: 18px;
+        border: 1px solid #e5e5e5;
+        margin-top: 20px;
     }
-
-    .result-value {
-        color: #5EEAD4;
-        font-size: 30px;
-        font-weight: 800;
+    [data-testid="stFileUploader"] {
+        background-color: white;
+        padding: 18px;
+        border-radius: 16px;
+        border: 1px dashed #b8b8c0;
     }
-
-    div.stButton > button {
-        background: #0D9488;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        height: 48px;
-        font-weight: 700;
+    .stButton > button {
         width: 100%;
-    }
-
-    div.stButton > button:hover {
-        background: #0F766E;
+        height: 50px;
+        border-radius: 12px;
+        background-color: #10a37f;
         color: white;
         border: none;
+        font-size: 16px;
+        font-weight: 600;
     }
-
+    .stButton > button:hover {
+        background-color: #0d8c6d;
+        color: white;
+    }
+    [data-testid="stMetric"] {
+        background: #f0fdf9;
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #d1fae5;
+    }
     hr {
-        border-color: #26344D;
+        border-color: #e5e5e5;
+    }
+    .small-text {
+        color: #888;
+        font-size: 13px;
+        text-align: center;
     }
     </style>
     """,
@@ -114,66 +101,58 @@ def load_model():
 
 
 def preprocess_image(image):
-    resized = image.resize(IMAGE_SIZE, Image.Resampling.LANCZOS)
-    image_array = np.asarray(resized, dtype=np.float32) / 255.0
-    return np.expand_dims(image_array, axis=0)
+    rgb = image.convert("RGB").resize(IMAGE_SIZE, Image.Resampling.LANCZOS)
+    pixels = np.asarray(rgb, dtype=np.float32)
+    return np.expand_dims(pixels, axis=0)
 
 
 def validate_model(model):
     input_shape = tuple(model.input_shape)
-    if input_shape[1:] != INPUT_SHAPE:
+    if input_shape[1:] != (256, 256, 3):
         raise ValueError(
-            f"Expected model input (None, {INPUT_SHAPE}), got {input_shape}."
+            f"Expected model input (None, 256, 256, 3), got {input_shape}."
         )
 
     output_shape = tuple(model.output_shape)
-    if output_shape[-1] != len(CLASS_NAMES):
+    if output_shape[-1] != 1:
         raise ValueError(
-            f"Expected {len(CLASS_NAMES)} output classes, got {output_shape[-1]}."
+            f"Expected one sigmoid output, got model output shape {output_shape}."
         )
 
 
 with st.sidebar:
-    st.title("🫁 MedVision AI")
-    st.caption("INTELLIGENT MEDICAL IMAGING")
+    st.title("🤖 AI Vision")
     st.divider()
-    page = st.radio(
-        "Navigation",
-        ("🔍 X-Ray Classification", "📊 Model Information"),
+    st.subheader("🐶 Dog vs Cat")
+    st.caption("AI Image Classification")
+    st.divider()
+    st.subheader("About")
+    st.write(
+        "An AI-powered application that classifies uploaded images as "
+        "dog or cat using a trained Convolutional Neural Network."
     )
     st.divider()
-    st.subheader("Model Details")
-    st.markdown(
-        f"""
-        - **Architecture:** Custom CNN
-        - **Framework:** TensorFlow {tf.__version__}
-        - **Input:** {INPUT_SHAPE[0]} × {INPUT_SHAPE[1]} × {INPUT_SHAPE[2]}
-        - **Classes:** {len(CLASS_NAMES)}
-        """
-    )
+    st.subheader("Model Information")
+    st.write("**Architecture:** Custom CNN")
+    st.write("**Input:** 256 × 256 × 3")
+    st.write("**Output:** Binary classification")
+    st.write("**Framework:** TensorFlow")
     st.divider()
-    st.caption("Educational project only")
-
-if page == "📊 Model Information":
-    st.title("📊 Model Information")
-    st.info("تطبيق تعليمي لتصنيف أشعة الصدر — لا يُستخدم للتشخيص الطبي.")
-    st.write(f"**الفئات:** {', '.join(CLASS_NAMES)}")
-    st.write(f"**أبعاد الإدخال:** `{INPUT_SHAPE[0]} × {INPUT_SHAPE[1]} × {INPUT_SHAPE[2]}`")
-    st.write(f"**ملف النموذج:** `{MODEL_PATH.name}`")
-    st.warning(
-        "النموذج المحفوظ لا يحتوي أسماء الفئات؛ ترتيب الأسماء هنا هو "
-        "الترتيب المهيأ في التطبيق."
-    )
-    st.stop()
+    st.caption("Powered by TensorFlow & Streamlit")
 
 st.markdown(
-    '<div class="main-title">Chest X-Ray Analysis</div>',
+    '<div class="main-title">AI Vision</div>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<div class="subtitle">AI-powered classification for COVID-19, Normal, and Pneumonia chest X-rays.</div>',
+    '<div class="subtitle">'
+    "Your intelligent assistant for dog and cat image classification"
+    "</div>",
     unsafe_allow_html=True,
 )
+
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 if not MODEL_PATH.is_file():
     st.error(f"Model file was not found: {MODEL_PATH.name}")
@@ -186,147 +165,122 @@ except (OSError, ValueError, TypeError, ImportError, tf.errors.OpError) as error
     st.error(f"Unable to load the model: {error}")
     st.stop()
 
-left_col, right_col = st.columns([1.1, 0.9], gap="large")
+st.markdown(
+    """
+    <div class="custom-card">
+    <h3 style="margin-top:0;color:#202123;">👋 Welcome to AI Vision!</h3>
+    <p style="color:#666;font-size:16px;">
+    Upload an image of a dog or cat and the trained model will classify it.
+    </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-with left_col:
-    st.markdown(
-        '<div class="section-title">📤 Upload X-Ray Image</div>',
-        unsafe_allow_html=True,
-    )
-    st.warning(
-        "The saved model does not include class names. Results use the "
-        "configured order: COVID-19, Normal, Pneumonia."
-    )
-    uploaded_file = st.file_uploader(
-        "Choose a chest X-ray image",
-        type=("jpg", "jpeg", "png"),
-        label_visibility="collapsed",
-    )
+st.markdown("### 📤 Upload your image")
+uploaded_file = st.file_uploader(
+    "Choose an image to analyze",
+    type=("jpg", "jpeg", "png"),
+    label_visibility="collapsed",
+)
 
-    image = None
-    if uploaded_file is not None:
-        try:
-            with Image.open(BytesIO(uploaded_file.getvalue())) as opened_image:
-                image = opened_image.convert("RGB")
-        except (
-            UnidentifiedImageError,
-            Image.DecompressionBombError,
-            OSError,
-        ) as error:
-            st.error(f"Could not read the uploaded image: {error}")
+if uploaded_file is not None:
+    try:
+        with Image.open(BytesIO(uploaded_file.getvalue())) as opened:
+            image = opened.convert("RGB")
+    except (
+        UnidentifiedImageError,
+        Image.DecompressionBombError,
+        OSError,
+    ) as error:
+        st.error(f"Could not read the uploaded image: {error}")
+        st.stop()
 
-    if image is not None:
-        st.image(
-            image,
-            caption="Uploaded Chest X-Ray",
-            width="stretch",
-        )
-        st.caption(f"File: {uploaded_file.name}")
-    else:
-        st.markdown(
-            """
-            <div class="info-card" style="text-align:center; padding:65px 20px;">
-                <div style="font-size:55px;">🩻</div>
-                <h3 style="color:#E2E8F0;">No Image Uploaded</h3>
-                <p style="color:#94A3B8;">
-                    Upload a chest X-ray image to start the AI analysis.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    st.markdown("### 🖼️ Image Preview")
+    st.image(image, caption="Uploaded image", use_container_width=True)
 
-    predict_button = st.button(
-        "🔍 Analyze X-Ray",
-        type="primary",
-        disabled=image is None,
-    )
+    if st.button("✨ Analyze Image", use_container_width=True):
+        with st.spinner("AI is analyzing your image..."):
+            try:
+                result = model.predict(preprocess_image(image), verbose=0)
+                probability = float(np.asarray(result).reshape(-1)[0])
+            except (ValueError, tf.errors.InvalidArgumentError) as error:
+                st.error(f"Could not analyze the image: {error}")
+                st.stop()
 
-if predict_button and image is not None:
-    with st.spinner("AI is analyzing the X-ray..."):
-        try:
-            batch = preprocess_image(image)
-            raw_predictions = model.predict(batch, verbose=0)
-            predictions = np.asarray(raw_predictions)
-        except (ValueError, tf.errors.InvalidArgumentError) as error:
-            st.error(f"Could not analyze the image: {error}")
+        if not np.isfinite(probability) or not 0 <= probability <= 1:
+            st.error("The model returned an invalid probability.")
             st.stop()
 
-    if predictions.shape != (1, len(CLASS_NAMES)):
-        st.error(
-            "The model returned an unexpected result shape. "
-            f"Expected (1, {len(CLASS_NAMES)}), got {predictions.shape}."
+        if probability >= 0.5:
+            animal = "Dog 🐶"
+            confidence = probability * 100
+            result_color = "#e0f2fe"
+            text_color = "#0369a1"
+        else:
+            animal = "Cat 🐱"
+            confidence = (1 - probability) * 100
+            result_color = "#fef3c7"
+            text_color = "#92400e"
+
+        st.session_state.history.append(
+            {"animal": animal, "confidence": confidence}
         )
-        st.stop()
 
-    scores = predictions[0]
-    if not np.isfinite(scores).all():
-        st.error("The model returned invalid probability values.")
-        st.stop()
-
-    if (
-        np.any(scores < 0)
-        or np.any(scores > 1)
-        or not np.isclose(float(scores.sum()), 1.0, atol=1e-3)
-    ):
-        st.error("The model did not return valid class probabilities.")
-        st.stop()
-
-    predicted_index = int(np.argmax(scores))
-    predicted_class = CLASS_NAMES[predicted_index]
-    confidence = float(scores[predicted_index]) * 100
-
-    with right_col:
-        st.markdown(
-            '<div class="section-title">📊 Analysis Results</div>',
-            unsafe_allow_html=True,
-        )
+        st.divider()
+        st.markdown("## 🤖 AI Analysis Result")
         st.markdown(
             f"""
-            <div class="result-card">
-                <div class="result-label">PREDICTED CLASS</div>
-                <div class="result-value">{predicted_class}</div>
-                <br>
-                <div class="result-label">Model Confidence</div>
-                <h2 style="color:#FFFFFF;">{confidence:.2f}%</h2>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.write("")
-        st.subheader("Class Probabilities")
-        for name, score in zip(CLASS_NAMES, scores):
-            probability = float(score)
-            st.markdown(
-                f"**{name}**"
-                f"<span style='float:right;color:#5EEAD4;'>"
-                f"{probability * 100:.2f}%</span>",
-                unsafe_allow_html=True,
-            )
-            st.progress(probability)
-
-        st.write("")
-        st.subheader("Prediction Summary")
-        st.markdown(
-            f"""
-            <div class="info-card">
-                <p style="color:#94A3B8;">Most likely classification</p>
-                <h3 style="color:#5EEAD4;">{predicted_class}</h3>
-                <p style="color:#94A3B8;">
-                    The model assigned the highest score to this class.
+            <div style="
+                background:{result_color};
+                padding:30px;
+                border-radius:18px;
+                text-align:center;
+                border:1px solid #e5e5e5;">
+                <p style="color:{text_color};font-size:17px;">
+                    The AI predicts that this image contains
+                </p>
+                <h1 style="color:{text_color};font-size:42px;margin:10px;">
+                    {animal}
+                </h1>
+                <p style="color:{text_color};">
+                    Confidence: {confidence:.2f}%
                 </p>
             </div>
             """,
             unsafe_allow_html=True,
         )
+        st.write("")
+        st.metric("🎯 Prediction Confidence", f"{confidence:.2f}%")
+        st.progress(max(0.0, min(1.0, confidence / 100)))
         st.caption(
-            "Educational demonstration only. Not intended for clinical diagnosis."
+            "Confidence is the model probability for the selected class "
+            "and is not a guarantee of correctness."
+        )
+
+if st.session_state.history:
+    st.divider()
+    st.subheader("📚 Recent Predictions")
+    for item in reversed(st.session_state.history[-5:]):
+        st.markdown(
+            f"""
+            <div style="
+                background:white;
+                padding:15px 20px;
+                border-radius:12px;
+                border:1px solid #e5e5e5;
+                margin-bottom:10px;">
+                <b style="color:#202123;">{item['animal']}</b>
+                <span style="float:right;color:#10a37f;font-weight:600;">
+                    {item['confidence']:.2f}%
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
 st.divider()
 st.markdown(
-    "<center style='color:#64748B;'>"
-    "MedVision AI | Powered by TensorFlow & Streamlit"
-    "</center>",
+    '<p class="small-text">AI Vision · Built with TensorFlow & Streamlit</p>',
     unsafe_allow_html=True,
 )

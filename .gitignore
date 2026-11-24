@@ -4,6 +4,6 @@ __pycache__/
 .streamlit/secrets.toml
 .ipynb_checkpoints/
 *.ipynb
-data/
-dataset/
-Covid19-dataset/
+animals/
+name of the animals.txt
+requirements - Shortcut.lnk
