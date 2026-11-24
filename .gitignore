@@ -1,9 +1,0 @@
-.venv/
-__pycache__/
-*.py[cod]
-.streamlit/secrets.toml
-.ipynb_checkpoints/
-*.ipynb
-animals/
-name of the animals.txt
-requirements - Shortcut.lnk
